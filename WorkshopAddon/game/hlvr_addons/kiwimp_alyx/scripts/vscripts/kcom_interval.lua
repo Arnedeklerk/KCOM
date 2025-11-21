@@ -8,6 +8,11 @@ KCOM_ACTIVE = false;
 KCOM_ENTCACHE = {};
 KCOM_DEBUG = false; -- Set to true for detailed debug logging
 
+-- Fallback hand position offsets when actual hand tracking is unavailable
+local FALLBACK_LEFT_HAND_X_OFFSET = -10;
+local FALLBACK_RIGHT_HAND_X_OFFSET = 10;
+local FALLBACK_HAND_Z_OFFSET = -20;
+
 print("KCOM Enabled!");
 
 function Precache(context)
@@ -57,7 +62,7 @@ function KiwisCoOpMod()
                     local playerHeadAng = head:GetAnglesAsVector();
                     print("HEAD "..playerHead[1].." "..playerHead[2].." "..playerHead[3].." "..playerHeadAng[1].." "..playerHeadAng[2].." "..playerHeadAng[3].." KCOM");
                     -- Send approximate hand positions based on head position if hands unavailable
-                    print("HAND "..(playerHead[1]-10).." "..playerHead[2].." "..(playerHead[3]-20).." 0 0 0 "..(playerHead[1]+10).." "..playerHead[2].." "..(playerHead[3]-20).." 0 0 0 KCOM");
+                    print("HAND "..(playerHead[1]+FALLBACK_LEFT_HAND_X_OFFSET).." "..playerHead[2].." "..(playerHead[3]+FALLBACK_HAND_Z_OFFSET).." 0 0 0 "..(playerHead[1]+FALLBACK_RIGHT_HAND_X_OFFSET).." "..playerHead[2].." "..(playerHead[3]+FALLBACK_HAND_Z_OFFSET).." 0 0 0 KCOM");
                 end
             else
                 print("HEAD "..playerCenter[1].." "..playerCenter[2].." "..(playerCenter[3]+30).." "..playerAngles[1].." "..playerAngles[2].." "..playerAngles[3].." KCOM");
