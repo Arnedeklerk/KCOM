@@ -6,6 +6,7 @@ KCOM_USE_UUIDS = true;
 KCOM_API_VERSION = 4; -- this value will change if breaking changes are pushed to workshop
 KCOM_ACTIVE = false;
 KCOM_ENTCACHE = {};
+KCOM_DEBUG = false; -- Set to true for detailed debug logging
 
 print("KCOM Enabled!");
 
@@ -207,6 +208,9 @@ function KiwisCoOpMod()
         -- Updated to handle API changes and add better error handling
         function GetHandFromController(controller)
             if not controller then
+                if KCOM_DEBUG then
+                    print("KCOM DEBUG: GetHandFromController received nil controller")
+                end
                 return nil
             end
             
@@ -215,16 +219,25 @@ function KiwisCoOpMod()
             if children then
                 for k, child in ipairs(children) do
                     local classname = child:GetClassname()
+                    if KCOM_DEBUG then
+                        print("KCOM DEBUG: Found child with classname: " .. classname)
+                    end
                     -- Check for both old and potentially new classnames
                     if classname == "hlvr_prop_renderable_glove" or 
                        classname == "hlvr_hand_left" or 
                        classname == "hlvr_hand_right" then
+                        if KCOM_DEBUG then
+                            print("KCOM DEBUG: Using glove/hand entity with classname: " .. classname)
+                        end
                         return child
                     end
                 end
             end
             
             -- Fallback: return the controller itself
+            if KCOM_DEBUG then
+                print("KCOM DEBUG: No glove child found, using controller directly (classname: " .. controller:GetClassname() .. ")")
+            end
             return controller
         end
 
@@ -614,18 +627,27 @@ function KiwisCoOpMod()
                 targetname = "kcom_head_" .. i,
                 model = "models/props/choreo_office/headset_prop.vmdl",
                 solid = "0",
+                renderamt = "255",
+                rendermode = "0",
+                disableshadows = "1",
             }));
             table.insert(kcom_lefthands, SpawnEntityFromTableSynchronous("prop_dynamic", {
                 origin = "16128 16128 16128",
                 targetname = "kcom_lefthand_" .. i,
                 model = "models/hands/alyx_glove_left.vmdl",
                 solid = "0",
+                renderamt = "255",
+                rendermode = "0",
+                disableshadows = "1",
             }));
             table.insert(kcom_righthands, SpawnEntityFromTableSynchronous("prop_dynamic", {
                 origin = "16128 16128 16128",
                 targetname = "kcom_righthand_" .. i,
                 model = "models/hands/alyx_glove_right.vmdl",
                 solid = "0",
+                renderamt = "255",
+                rendermode = "0",
+                disableshadows = "1",
             }));
             table.insert(kcom_text, SpawnEntityFromTableSynchronous("point_worldtext", {
                 origin = "16128 16128 16128",
