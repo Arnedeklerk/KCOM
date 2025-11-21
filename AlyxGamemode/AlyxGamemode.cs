@@ -147,7 +147,7 @@ namespace AlyxGamemode
                                                                 float.Parse(packet.args[4], CultureInfo.InvariantCulture.NumberFormat),
                                                                 float.Parse(packet.args[5], CultureInfo.InvariantCulture.NumberFormat)
                                                             );
-                                                            Response teleport = new("command", "kcom_teleportangles " + TeleOrigin.X + " " + TeleOrigin.Y + " " + TeleOrigin.Z + " " + TeleAngles.Pitch + " " + TeleAngles.Yaw + " " + TeleAngles.Roll);
+                                                            Response teleport = new("command", "kcom_teleportangles " + TeleOrigin + " " + TeleAngles);
                                                             foreach (IndexedClient broadcastClient2 in connections)
                                                             {
                                                                 Player? keyValuePair = AlyxGlobalData.instance.GetPlayer(broadcastClient2.Session.ConnectionInfo.Id);

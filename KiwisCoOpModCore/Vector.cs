@@ -15,6 +15,7 @@
 */
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -34,7 +35,7 @@ namespace KiwisCoOpModCore
         }
         public override string ToString()
         {
-            return X + " " + Y + " " + Z;
+            return X.ToString(CultureInfo.InvariantCulture) + " " + Y.ToString(CultureInfo.InvariantCulture) + " " + Z.ToString(CultureInfo.InvariantCulture);
         }
     }
 }

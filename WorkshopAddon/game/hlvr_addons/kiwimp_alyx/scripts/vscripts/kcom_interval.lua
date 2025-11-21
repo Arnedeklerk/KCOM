@@ -6,6 +6,12 @@ KCOM_USE_UUIDS = true;
 KCOM_API_VERSION = 4; -- this value will change if breaking changes are pushed to workshop
 KCOM_ACTIVE = false;
 KCOM_ENTCACHE = {};
+KCOM_DEBUG = false; -- Set to true for detailed debug logging
+
+-- Fallback hand position offsets when actual hand tracking is unavailable
+local FALLBACK_LEFT_HAND_X_OFFSET = -10;
+local FALLBACK_RIGHT_HAND_X_OFFSET = 10;
+local FALLBACK_HAND_Z_OFFSET = -20;
 
 print("KCOM Enabled!");
 
@@ -28,18 +34,36 @@ function KiwisCoOpMod()
             if head then
                 local leftController = head:GetVRHand(0)
                 local rightController = head:GetVRHand(1)
-                local leftHand = GetHandFromController(leftController)
-                local rightHand = GetHandFromController(rightController)
+                
+                -- Get hand entities with nil checks
+                local leftHand = nil
+                local rightHand = nil
+                if leftController then
+                    leftHand = GetHandFromController(leftController)
+                end
+                if rightController then
+                    rightHand = GetHandFromController(rightController)
+                end
 
-                local playerHead = head:GetAbsOrigin();
-                local playerHeadAng = head:GetAnglesAsVector();
-                local playerLeftHand = leftHand:GetAbsOrigin();
-                local playerRightHand = rightHand:GetAbsOrigin();
-                local playerLeftHandAngles = leftHand:GetAnglesAsVector();
-                local playerRightHandAngles = rightHand:GetAnglesAsVector();
+                -- Only send position data if we have valid hand entities
+                if leftHand and rightHand then
+                    local playerHead = head:GetAbsOrigin();
+                    local playerHeadAng = head:GetAnglesAsVector();
+                    local playerLeftHand = leftHand:GetAbsOrigin();
+                    local playerRightHand = rightHand:GetAbsOrigin();
+                    local playerLeftHandAngles = leftHand:GetAnglesAsVector();
+                    local playerRightHandAngles = rightHand:GetAnglesAsVector();
 
-                print("HEAD "..playerHead[1].." "..playerHead[2].." "..playerHead[3].." "..playerHeadAng[1].." "..playerHeadAng[2].." "..playerHeadAng[3].." KCOM");
-                print("HAND "..playerLeftHand[1].." "..playerLeftHand[2].." "..playerLeftHand[3].." "..playerLeftHandAngles[1].." "..playerLeftHandAngles[2].." "..playerLeftHandAngles[3].." "..playerRightHand[1].." "..playerRightHand[2].." "..playerRightHand[3].." "..playerRightHandAngles[1].." "..playerRightHandAngles[2].." "..playerRightHandAngles[3].." KCOM");
+                    print("HEAD "..playerHead[1].." "..playerHead[2].." "..playerHead[3].." "..playerHeadAng[1].." "..playerHeadAng[2].." "..playerHeadAng[3].." KCOM");
+                    print("HAND "..playerLeftHand[1].." "..playerLeftHand[2].." "..playerLeftHand[3].." "..playerLeftHandAngles[1].." "..playerLeftHandAngles[2].." "..playerLeftHandAngles[3].." "..playerRightHand[1].." "..playerRightHand[2].." "..playerRightHand[3].." "..playerRightHandAngles[1].." "..playerRightHandAngles[2].." "..playerRightHandAngles[3].." KCOM");
+                else
+                    -- Fallback if hands can't be retrieved
+                    local playerHead = head:GetAbsOrigin();
+                    local playerHeadAng = head:GetAnglesAsVector();
+                    print("HEAD "..playerHead[1].." "..playerHead[2].." "..playerHead[3].." "..playerHeadAng[1].." "..playerHeadAng[2].." "..playerHeadAng[3].." KCOM");
+                    -- Send approximate hand positions based on head position if hands unavailable
+                    print("HAND "..(playerHead[1]+FALLBACK_LEFT_HAND_X_OFFSET).." "..playerHead[2].." "..(playerHead[3]+FALLBACK_HAND_Z_OFFSET).." 0 0 0 "..(playerHead[1]+FALLBACK_RIGHT_HAND_X_OFFSET).." "..playerHead[2].." "..(playerHead[3]+FALLBACK_HAND_Z_OFFSET).." 0 0 0 KCOM");
+                end
             else
                 print("HEAD "..playerCenter[1].." "..playerCenter[2].." "..(playerCenter[3]+30).." "..playerAngles[1].." "..playerAngles[2].." "..playerAngles[3].." KCOM");
             end
@@ -186,11 +210,38 @@ function KiwisCoOpMod()
 
         -- thank you Epic#4527 from the source 2 modding discord!
         -- https://discord.com/channels/692784980304330853/713548145358929990/715966997103509578
+        -- Updated to handle API changes and add better error handling
         function GetHandFromController(controller)
-            for k, child in ipairs(controller:GetChildren()) do
-                if (child:GetClassname() == "hlvr_prop_renderable_glove") then
-                    return child
+            if not controller then
+                if KCOM_DEBUG then
+                    print("KCOM DEBUG: GetHandFromController received nil controller")
                 end
+                return nil
+            end
+            
+            -- Try to find the glove child entity (original method)
+            local children = controller:GetChildren()
+            if children then
+                for k, child in ipairs(children) do
+                    local classname = child:GetClassname()
+                    if KCOM_DEBUG then
+                        print("KCOM DEBUG: Found child with classname: " .. classname)
+                    end
+                    -- Check for both old and potentially new classnames
+                    if classname == "hlvr_prop_renderable_glove" or 
+                       classname == "hlvr_hand_left" or 
+                       classname == "hlvr_hand_right" then
+                        if KCOM_DEBUG then
+                            print("KCOM DEBUG: Using glove/hand entity with classname: " .. classname)
+                        end
+                        return child
+                    end
+                end
+            end
+            
+            -- Fallback: return the controller itself
+            if KCOM_DEBUG then
+                print("KCOM DEBUG: No glove child found, using controller directly (classname: " .. controller:GetClassname() .. ")")
             end
             return controller
         end
@@ -581,18 +632,27 @@ function KiwisCoOpMod()
                 targetname = "kcom_head_" .. i,
                 model = "models/props/choreo_office/headset_prop.vmdl",
                 solid = "0",
+                renderamt = "255",
+                rendermode = "0",
+                disableshadows = "1",
             }));
             table.insert(kcom_lefthands, SpawnEntityFromTableSynchronous("prop_dynamic", {
                 origin = "16128 16128 16128",
                 targetname = "kcom_lefthand_" .. i,
                 model = "models/hands/alyx_glove_left.vmdl",
                 solid = "0",
+                renderamt = "255",
+                rendermode = "0",
+                disableshadows = "1",
             }));
             table.insert(kcom_righthands, SpawnEntityFromTableSynchronous("prop_dynamic", {
                 origin = "16128 16128 16128",
                 targetname = "kcom_righthand_" .. i,
                 model = "models/hands/alyx_glove_right.vmdl",
                 solid = "0",
+                renderamt = "255",
+                rendermode = "0",
+                disableshadows = "1",
             }));
             table.insert(kcom_text, SpawnEntityFromTableSynchronous("point_worldtext", {
                 origin = "16128 16128 16128",
