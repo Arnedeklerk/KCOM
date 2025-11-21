@@ -80,7 +80,7 @@ namespace AlyxGamemode
         {
             Player? oldPlayer = players.Find(p => p.Index == index);
             if (oldPlayer != null)
-                players.Remove(oldPlayer);
+                return players.Remove(oldPlayer);
             return false;
         }
     }
