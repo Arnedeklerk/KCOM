@@ -28,18 +28,36 @@ function KiwisCoOpMod()
             if head then
                 local leftController = head:GetVRHand(0)
                 local rightController = head:GetVRHand(1)
-                local leftHand = GetHandFromController(leftController)
-                local rightHand = GetHandFromController(rightController)
+                
+                -- Get hand entities with nil checks
+                local leftHand = nil
+                local rightHand = nil
+                if leftController then
+                    leftHand = GetHandFromController(leftController)
+                end
+                if rightController then
+                    rightHand = GetHandFromController(rightController)
+                end
 
-                local playerHead = head:GetAbsOrigin();
-                local playerHeadAng = head:GetAnglesAsVector();
-                local playerLeftHand = leftHand:GetAbsOrigin();
-                local playerRightHand = rightHand:GetAbsOrigin();
-                local playerLeftHandAngles = leftHand:GetAnglesAsVector();
-                local playerRightHandAngles = rightHand:GetAnglesAsVector();
+                -- Only send position data if we have valid hand entities
+                if leftHand and rightHand then
+                    local playerHead = head:GetAbsOrigin();
+                    local playerHeadAng = head:GetAnglesAsVector();
+                    local playerLeftHand = leftHand:GetAbsOrigin();
+                    local playerRightHand = rightHand:GetAbsOrigin();
+                    local playerLeftHandAngles = leftHand:GetAnglesAsVector();
+                    local playerRightHandAngles = rightHand:GetAnglesAsVector();
 
-                print("HEAD "..playerHead[1].." "..playerHead[2].." "..playerHead[3].." "..playerHeadAng[1].." "..playerHeadAng[2].." "..playerHeadAng[3].." KCOM");
-                print("HAND "..playerLeftHand[1].." "..playerLeftHand[2].." "..playerLeftHand[3].." "..playerLeftHandAngles[1].." "..playerLeftHandAngles[2].." "..playerLeftHandAngles[3].." "..playerRightHand[1].." "..playerRightHand[2].." "..playerRightHand[3].." "..playerRightHandAngles[1].." "..playerRightHandAngles[2].." "..playerRightHandAngles[3].." KCOM");
+                    print("HEAD "..playerHead[1].." "..playerHead[2].." "..playerHead[3].." "..playerHeadAng[1].." "..playerHeadAng[2].." "..playerHeadAng[3].." KCOM");
+                    print("HAND "..playerLeftHand[1].." "..playerLeftHand[2].." "..playerLeftHand[3].." "..playerLeftHandAngles[1].." "..playerLeftHandAngles[2].." "..playerLeftHandAngles[3].." "..playerRightHand[1].." "..playerRightHand[2].." "..playerRightHand[3].." "..playerRightHandAngles[1].." "..playerRightHandAngles[2].." "..playerRightHandAngles[3].." KCOM");
+                else
+                    -- Fallback if hands can't be retrieved
+                    local playerHead = head:GetAbsOrigin();
+                    local playerHeadAng = head:GetAnglesAsVector();
+                    print("HEAD "..playerHead[1].." "..playerHead[2].." "..playerHead[3].." "..playerHeadAng[1].." "..playerHeadAng[2].." "..playerHeadAng[3].." KCOM");
+                    -- Send approximate hand positions based on head position if hands unavailable
+                    print("HAND "..(playerHead[1]-10).." "..playerHead[2].." "..(playerHead[3]-20).." 0 0 0 "..(playerHead[1]+10).." "..playerHead[2].." "..(playerHead[3]-20).." 0 0 0 KCOM");
+                end
             else
                 print("HEAD "..playerCenter[1].." "..playerCenter[2].." "..(playerCenter[3]+30).." "..playerAngles[1].." "..playerAngles[2].." "..playerAngles[3].." KCOM");
             end
@@ -186,12 +204,27 @@ function KiwisCoOpMod()
 
         -- thank you Epic#4527 from the source 2 modding discord!
         -- https://discord.com/channels/692784980304330853/713548145358929990/715966997103509578
+        -- Updated to handle API changes and add better error handling
         function GetHandFromController(controller)
-            for k, child in ipairs(controller:GetChildren()) do
-                if (child:GetClassname() == "hlvr_prop_renderable_glove") then
-                    return child
+            if not controller then
+                return nil
+            end
+            
+            -- Try to find the glove child entity (original method)
+            local children = controller:GetChildren()
+            if children then
+                for k, child in ipairs(children) do
+                    local classname = child:GetClassname()
+                    -- Check for both old and potentially new classnames
+                    if classname == "hlvr_prop_renderable_glove" or 
+                       classname == "hlvr_hand_left" or 
+                       classname == "hlvr_hand_right" then
+                        return child
+                    end
                 end
             end
+            
+            -- Fallback: return the controller itself
             return controller
         end
 
